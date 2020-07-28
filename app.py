@@ -102,16 +102,14 @@ def webscrape():
 # Send SMS
 def SMS():
     message = client.messages.create(
-                    from_= '+13477543962', #os.environ['TWILIO_NUMBER'],
+                    from_= os.environ['TWILIO_NUMBER'],
                     to='', # dB numbers
                     body='Testing from Twilio' # Daily update from dB)
                     )
 
 # Schedule daily tasks
-'''
 schedule.every().day.at("15:04").do(webscrape)
 schedule.every().day.at("15:05").do(SMS)
-'''
 
 # Home Page
 @app.route("/", methods =['GET', 'POST'])
@@ -158,9 +156,7 @@ if __name__ == "__main__":
     # Still under development, run debug
     app.run(debug=True ,use_reloader=False)
 
-'''
 # Keep app running to perform daily webscrape
 while True:
     schedule.run_pending()
     time.sleep(1)
-'''
