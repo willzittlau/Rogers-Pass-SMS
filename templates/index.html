@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <title>Rogers Pass Status SMS</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.3/build/pure-min.css" integrity="sha384-cg6SkqEOCV1NbJoCu11+bm0NvBRc8IYLRGXkmNrqUBfTjmMYwNKPWBTIKyw9mHNJ" crossorigin="anonymous">
+</head>
+<body>
+    <div class="header-image">
+        <div class="header-text">
+            <h1> Rogers Pass Winter Restricted Area Status SMS</h1>
+        </div>
+    </div>
+    <h3>Enter your phone number in the form below to get an SMS status update tomorrow for the Rogers Pass Restricted Areas</h3>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+    {% if not postsuccess%}
+        <style scoped="">
+            .button-custom {
+                border: 0.5px solid Silver;
+                border-radius: 6px;
+            }
+        </style>
+        <form class="pure-form" method="post" action="/">
+            <input type="tel" class="pure-input-rounded" name="number" autocomplete= "tel" required placeholder="ex. 123-456-789" >
+            <button type="submit" class="button-custom pure-button">Submit</button>
+        </form>
+    {% endif %}
+    {% if postsuccess%}
+        <p><b>Success! You will be notified tomorrow just after 8AM.</b></p>
+    {% endif %}
+</body>
+</html>
