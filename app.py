@@ -1,13 +1,15 @@
 # Import libraries
 import os
-from twilio.rest import Client
 from flask import Flask, render_template, request, url_for, flash, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 from datetime import datetime, date
 import time
 import schedule
 import requests
+import re
 
 # Set up app and environment
 app = Flask(__name__)
@@ -55,6 +57,36 @@ class Info(db.Model):
     def __repr__(self):
         return '<id {}>'.format(self.id)
 
+# Twilio number verification
+def is_valid_number(number):
+    try:
+        response = client.lookups.phone_numbers(number).fetch(type="carrier")
+        return True
+    except TwilioRestException as e:
+        if e.code == 20404:
+            return False
+
+# Convert input to e.164 format
+def format_e164(number):
+    number = number.replace('(','')
+    number = number.replace(')','')
+    number = number.replace('-','')
+    number = number.replace('+','')
+    number = number.replace('[','')
+    number = number.replace(']','')
+    number = number.replace('.','')
+    number = number.replace(' ','')
+    number = number.replace('·','')
+    if len(number) > 10:
+        if number.startswith('1'):
+            number = '+' + number
+        else:
+            number = '+1' + number
+    if len(number) == 10:
+        number = '+1' + number
+    return (number)
+
+# Webscrape data and add to dB
 def webscrape():
     # Get daily udpate page
     get_url = requests.get('https://www.pc.gc.ca/apps/rogers-pass/print?lang=en')
@@ -70,15 +102,16 @@ def webscrape():
 # Send SMS
 def SMS():
     message = client.messages.create(
-                    from_= os.environ['TWILIO_NUMBER'],
-                    to= +1234567890, # dB numbers
+                    from_= '+13477543962', #os.environ['TWILIO_NUMBER'],
+                    to='', # dB numbers
                     body='Testing from Twilio' # Daily update from dB)
                     )
 
 # Schedule daily tasks
-
+'''
 schedule.every().day.at("15:04").do(webscrape)
 schedule.every().day.at("15:05").do(SMS)
+'''
 
 # Home Page
 @app.route("/", methods =['GET', 'POST'])
@@ -88,16 +121,20 @@ def index():
     # POST request route
     if request.method == 'POST':
         # Get data from form and fill dB variables
-        number = request.form.get('number')
-        signup_date = date.today()
+        number_in = request.form.get('number')
+        signup_date = datetime.utcnow().date()
         posttime = datetime.utcnow()
         date_time = datetime(
                             posttime.year, posttime.month, 
                             posttime.day, posttime.hour, 
                             posttime.minute, posttime.second
                                 )
-        # Verify number
-        if number == '7782159455':
+        # Verify number and prevent incorrect form entries
+        num_regex = re.findall(r'''[^a-zA-Z@$&%!=:;/|}{#^*_\\><,?"']''', number_in)
+        number_out = ''.join(num_regex)
+        # Format to e.164 for dB entry
+        number = format_e164(number_out)
+        if is_valid_number(number) and number != '':
             # Check if user has already signed up for the udpate or not
             if db.session.query(User).filter(and_(User.number == number, User.signup_date == signup_date)).count() == 0:
                 # Append to dB
@@ -121,8 +158,9 @@ if __name__ == "__main__":
     # Still under development, run debug
     app.run(debug=True ,use_reloader=False)
 
-
+'''
 # Keep app running to perform daily webscrape
 while True:
     schedule.run_pending()
     time.sleep(1)
+'''
