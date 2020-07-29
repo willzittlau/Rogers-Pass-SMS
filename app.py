@@ -6,10 +6,10 @@ from sqlalchemy import and_
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from selenium import webdriver
+from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
 import datetime
 import time
-import schedule
 import re
 
 # Set up app and environment
@@ -160,7 +160,7 @@ def send_sms():
     # Find list of numbers to send sms to
     query_end_time = datetime.datetime.combine(datetime.datetime.utcnow().date(), datetime.time(15, 5))
     query_start_time = query_end_time - datetime.timedelta(days = 1)
-    daily_numbers = db.session.query(User.number).filter(
+    daily_numbers = db.session.query(User.number.distinct()).filter(
                                         and_(User.date_time >= query_start_time, 
                                             User.date_time <= query_end_time)).all()
     daily_numbers = [r for r, in daily_numbers]
@@ -172,8 +172,9 @@ def send_sms():
                     )
 
 # Schedule daily tasks
-schedule.every().day.at("15:04").do(webscrape)
-schedule.every().day.at("15:05").do(send_sms)
+scheduler = BackgroundScheduler()
+scheduler.add_job(webscrape, 'cron', hour=15, minute=4)
+scheduler.add_job(send_sms, 'cron', hour=15, minute=5)
 
 # Home Page
 @app.route("/", methods =['GET', 'POST'])
@@ -198,7 +199,8 @@ def index():
         number = format_e164(number_out)
         if is_valid_number(number) and number != '':
             # Check if user has already signed up for the udpate or not
-            if db.session.query(User).filter(and_(User.number == number, User.signup_date == signup_date)).count() == 0:
+            if db.session.query(User).filter(
+                    and_(User.number == number, User.signup_date == signup_date)).count() == 0:
                 # Append to dB
                 data = User(number, date_time, signup_date)
                 db.session.add(data)
@@ -217,10 +219,7 @@ def index():
 
 # On running app.py, run Flask app
 if __name__ == "__main__":
+    # Run background tasks
+    scheduler.start()
     # Still under development, run debug
     app.run(debug=True ,use_reloader=False)
-
-# Keep app running to perform daily webscrape
-while True:
-    schedule.run_pending()
-    time.sleep(1)
