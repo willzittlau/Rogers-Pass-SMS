@@ -5,12 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
-from datetime import datetime, date
 from selenium import webdriver
 import pandas as pd
+import datetime
 import time
 import schedule
-import requests
 import re
 
 # Set up app and environment
@@ -37,12 +36,10 @@ class User(db.Model):
     number = db.Column(db.String())
     date_time = db.Column(db.DateTime())
     signup_date = db.Column(db.Date())
-    
     def __init__(self, number, date_time, signup_date):
         self.number = number
         self.date_time = date_time
         self.signup_date = signup_date
-
     def __repr__(self):
         return '<id {}>'.format(self.id)
 
@@ -51,11 +48,9 @@ class Info(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     status = db.Column(db.Text())
     status_date = db.Column(db.Date())
-    
     def __init__(self, status, status_date):
         self.status = status
         self.status_date = status_date
-
     def __repr__(self):
         return '<id {}>'.format(self.id)
 
@@ -110,7 +105,7 @@ def webscrape():
     parking_table = pd.DataFrame(tables[1])
     prohibited_table = pd.DataFrame(tables[2])
     # Initialise strings
-    title_string = 'Status for ' + str(datetime.utcnow().date()) + ':'
+    title_string = 'Status for ' + str(datetime.datetime.utcnow().date()) + ':'
     wra_open_string = 'Open WRAs: '
     wra_closed_string = 'Closed WRAs: '
     parking_open_string = 'Open Parking: '
@@ -147,26 +142,38 @@ def webscrape():
     if not prohibited_string.endswith(': '):
         prohibited_string = prohibited_string[:-2]
     # Concat and save results for dB
-    status = (title_string + '\n\n' + wra_open_string 
-                + '\n\n' + wra_closed_string + '\n\n' + parking_open_string 
-                + '\n\n' + parking_closed_string + '\n\n' + prohibited_string)
-    status_date = datetime.utcnow().date()
+    status = (title_string + '\n' + wra_open_string 
+                + '\n' + wra_closed_string + '\n' + parking_open_string 
+                + '\n' + parking_closed_string + '\n' + prohibited_string)
+    status_date = datetime.datetime.utcnow().date()
     # Append to dB
     rpdata = Info(status, status_date)
     db.session.add(rpdata)
     db.session.commit()
 
 # Send SMS
-def SMS():
-    message = client.messages.create(
+def send_sms():
+    # Return contents for sms message
+    todays_date = datetime.datetime.utcnow().date()
+    daily_update_sms = db.session.query(Info.status).filter(Info.status_date == todays_date).limit(1).scalar()
+    daily_update_sms = daily_update_sms.replace('\n', '\n\n')
+    # Find list of numbers to send sms to
+    query_end_time = datetime.datetime.combine(datetime.datetime.utcnow().date(), datetime.time(15, 5))
+    query_start_time = query_end_time - datetime.timedelta(days = 1)
+    daily_numbers = db.session.query(User.number).filter(
+                                        and_(User.date_time >= query_start_time, 
+                                            User.date_time <= query_end_time)).all()
+    daily_numbers = [r for r, in daily_numbers]
+    for number in daily_numbers:
+        message = client.messages.create(
                     from_= os.environ['TWILIO_NUMBER'],
-                    to='', # dB numbers
-                    body='Testing from Twilio' # Daily update from dB)
+                    to=number,
+                    body=daily_update_sms 
                     )
 
 # Schedule daily tasks
 schedule.every().day.at("15:04").do(webscrape)
-schedule.every().day.at("15:05").do(SMS)
+schedule.every().day.at("15:05").do(send_sms)
 
 # Home Page
 @app.route("/", methods =['GET', 'POST'])
@@ -177,9 +184,9 @@ def index():
     if request.method == 'POST':
         # Get data from form and fill dB variables
         number_in = request.form.get('number')
-        signup_date = datetime.utcnow().date()
-        posttime = datetime.utcnow()
-        date_time = datetime(
+        signup_date = datetime.datetime.utcnow().date()
+        posttime = datetime.datetime.utcnow()
+        date_time = datetime.datetime(
                             posttime.year, posttime.month, 
                             posttime.day, posttime.hour, 
                             posttime.minute, posttime.second
