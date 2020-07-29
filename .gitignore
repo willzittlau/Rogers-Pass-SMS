@@ -2,3 +2,5 @@
 __pycache__
 TODO
 .env
+applocal.py
+chromedriver.exe
