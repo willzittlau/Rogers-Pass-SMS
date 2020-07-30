@@ -6,7 +6,6 @@ from sqlalchemy import and_
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from selenium import webdriver
-from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
 import datetime
 import time
@@ -170,14 +169,6 @@ def send_sms():
                     body=daily_update_sms 
                     )
 
-def printer():
-    print('Testing...') #test
-
-# Schedule daily tasks
-scheduler = BackgroundScheduler()
-scheduler.add_job(webscrape, 'cron', hour=15, minute=4)
-scheduler.add_job(send_sms, 'cron', hour=15, minute=5)
-
 # Home Page
 @app.route("/", methods =['GET', 'POST'])
 def index():
@@ -221,7 +212,5 @@ def index():
 
 # On running app.py, run Flask app
 if __name__ == "__main__":
-    # Run background tasks
-    scheduler.start()
     # Still under development, run debug
-    app.run(debug=True ,use_reloader=False)
+    app.run(debug=True)
