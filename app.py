@@ -170,10 +170,15 @@ def send_sms():
                     body=daily_update_sms 
                     )
 
+
+def printer():
+    print('Testing...')
+
 # Schedule daily tasks
 scheduler = BackgroundScheduler()
 
 scheduler.add_job(webscrape, 'cron', second = 1) #test
+scheduler.add_job(printer, 'cron', second = 30) #test
 scheduler.add_job(send_sms, 'cron', second =59) #test
 
 scheduler.add_job(webscrape, 'cron', hour=15, minute=4)
