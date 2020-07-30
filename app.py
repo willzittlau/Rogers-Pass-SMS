@@ -177,9 +177,6 @@ def send_sms():
 # Schedule daily tasks
 scheduler = BackgroundScheduler()
 
-scheduler.add_job(webscrape, 'cron', second = 1) #test
-scheduler.add_job(send_sms, 'cron', second = 59) #test
-
 scheduler.add_job(webscrape, 'cron', hour=15, minute=4)
 scheduler.add_job(send_sms, 'cron', hour=15, minute=5)
 
@@ -190,6 +187,7 @@ def index():
     postsuccess = ''
     # POST request route
     if request.method == 'POST':
+        webscrape()
         # Get data from form and fill dB variables
         number_in = request.form.get('number')
         signup_date = datetime.datetime.utcnow().date()
