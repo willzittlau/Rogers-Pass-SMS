@@ -170,9 +170,8 @@ def send_sms():
                     body=daily_update_sms 
                     )
 
-
 def printer():
-    print('Testing...')
+    print('Testing...') #test
 
 # Schedule daily tasks
 scheduler = BackgroundScheduler()
