@@ -186,10 +186,12 @@ scheduler.add_job(send_sms, 'cron', hour=15, minute=5)
 # Home Page
 @app.route("/", methods =['GET', 'POST'])
 def index():
+    webscrape()
     # Set dummy variable for Jinja and dB entry
     postsuccess = ''
     # POST request route
     if request.method == 'POST':
+        send_sms()
         # Get data from form and fill dB variables
         number_in = request.form.get('number')
         signup_date = datetime.datetime.utcnow().date()
