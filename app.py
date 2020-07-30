@@ -86,17 +86,13 @@ def format_e164(number):
 # Webscrape data and add to dB
 def webscrape():
     # Selenium init
-    '''
-    chrome_options = Options()
+    chrome_options = webdriver.ChromeOptions()
     chrome_options.binary_location = os.environ['GOOGLE_CHROME_PATH']
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--ignore-certificate-errors')
-    chrome_options.add_argument('--incognito')
     chrome_options.add_argument('--headless')
-    driver = webdriver.Chrome(executable_path= os.environ['CHROMEDRIVER_PATH'], chrome_options=chrome_options)
-    '''
-    driver = webdriver.PhantomJS()
+    driver = webdriver.Chrome(executable_path=os.environ['CHROMEDRIVER_PATH'], chrome_options=chrome_options)
     # Scrape
     driver.get('https://www.pc.gc.ca/apps/rogers-pass/print?lang=en')
     time.sleep(3)
@@ -177,6 +173,9 @@ def send_sms():
 # Schedule daily tasks
 scheduler = BackgroundScheduler()
 
+scheduler.add_job(webscrape, 'cron', second = 1) #test
+scheduler.add_job(send_sms, 'cron', second =59) #test
+
 scheduler.add_job(webscrape, 'cron', hour=15, minute=4)
 scheduler.add_job(send_sms, 'cron', hour=15, minute=5)
 
@@ -187,7 +186,6 @@ def index():
     postsuccess = ''
     # POST request route
     if request.method == 'POST':
-        webscrape()
         # Get data from form and fill dB variables
         number_in = request.form.get('number')
         signup_date = datetime.datetime.utcnow().date()
