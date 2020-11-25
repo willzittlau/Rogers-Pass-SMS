@@ -94,8 +94,9 @@ def webscrape():
     driver = webdriver.Chrome(executable_path=os.environ['CHROMEDRIVER_PATH'], chrome_options=chrome_options)
     # Scrape
     driver.get('https://www.pc.gc.ca/apps/rogers-pass/print?lang=en')
-    time.sleep(3)
+    time.sleep(5)
     page_source = driver.page_source
+    statusDate = driver.find_element_by_id('publishDate').text
     driver.quit()
     # Save data
     tables = pd.read_html(page_source)
@@ -103,17 +104,17 @@ def webscrape():
     parking_table = pd.DataFrame(tables[1])
     prohibited_table = pd.DataFrame(tables[2])
     # Initialise strings
-    title_string = 'Status for ' + str(datetime.datetime.utcnow().date()) + ':'
+    title_string = statusDate + ':'
     wra_open_string = 'Open WRAs: '
     wra_closed_string = 'Closed WRAs: '
     parking_open_string = 'Open Parking: '
     parking_closed_string = 'Closed Parking: '
     prohibited_string = 'Prohibited Areas: '
     # String concatenation for WRA table
-    for i in range (0, len(wra_table['Winter restricted area'])):
+    for i in range (0, len(wra_table['Winter Restricted Area'])):
         if wra_table.at[i, 'Status'].startswith('O'):
             wra_table.at[i, 'Status'] = wra_table.at[i, 'Status'][:4]
-            wra_open_string += (wra_table.at[i, 'Winter restricted area'] + ', ')
+            wra_open_string += (wra_table.at[i, 'Winter Restricted Area'] + ', ')
         if wra_table.at[i, 'Status'].startswith('C'):
             wra_table.at[i, 'Status'] = wra_table.at[i, 'Status'][:6]
             wra_closed_string += wra_table.at[i, 'Status'] + '\n'
@@ -135,8 +136,8 @@ def webscrape():
     if not parking_closed_string.endswith(': '):
         parking_closed_string = parking_closed_string[:-2]
     # String concatenation for Prohibited table
-    for i in range (0, len(prohibited_table['Winter prohibited area'])):
-        prohibited_string += (prohibited_table.at[i, 'Winter prohibited area'] + ', ')
+    for i in range (0, len(prohibited_table['Winter Prohibited Area'])):
+        prohibited_string += (prohibited_table.at[i, 'Winter Prohibited Area'] + ', ')
     if not prohibited_string.endswith(': '):
         prohibited_string = prohibited_string[:-2]
     # Concat and save results for dB
